@@ -3,3 +3,4 @@ My personal server has been acting up lately, to be precise; the Call of Duty (1
 
 So I did a Munin plugin. In PHP ofcourse. ;) It’s my first Munin plugin, and I wouldn’t be surprised if it turns out to be the only one written in PHP. It used to be available for download at Munin Exchange, and the code is here for those that just want a quick look.
 
+Note: This is an old project. I do not use Munin any more, and it is mainly here for other people to fork.
