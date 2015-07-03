@@ -1,0 +1,136 @@
+#!/usr/bin/php  
+<?php 
+/*
+#################################################################
+# Title : Qstat ping plugin for Munin v1.1
+# Author : Håvard Pedersen
+# Email : fuzzy76 @ fuzzy76 net
+# Loosely based on the Qstat bash script plugin by Benjamin DUPUIS - Poil
+#---------------------------------------------------------------#
+# CHANGELOG
+#
+# v1.1 (23. april 2010)
+#   - Added highest ping, lowest ping and query response time.
+#   - Now supports being run for testing with ./ in front
+#
+# v1.0 (initial release 22. april 2010)
+#   - Basic thing with average ping only
+#
+#%# family=manual
+*/
+
+$qstatloc = "/usr/bin/quakestat";
+
+function doHelp() {
+  global $qstatloc;
+	echo "To test the script, just run qstatping_ GAMETYPE ADDRESS PORT
+Run qstat to see the available gametypes (q3s, q4s, cods, etc)
+To install for Munin you must ln -s /usr/share/munin/plugins/qstat_ /etc/munin/plugins/qstatping_GAMETYPE_ADDRESS_PORT
+You might also have to set the path to qstat in $qstatloc
+Have fun!
+";
+}
+
+function doConfig() {
+  global $argv;
+
+  if ($argv[0] != "qstatping_") {
+    $parts = explode("_",$argv[0]);
+    $gametype = $parts[1];
+    $ip = $parts[2];
+    $port = $parts[3];
+  } else {
+    $gametype = $argv[1];
+    $ip = $argv[2];
+    $port = $argv[3];
+  }
+
+  echo "graph_title Ping on $gametype at $ip:$port
+graph_vlabel Ping
+graph_category games
+minping.label Minimum ping
+maxping.label Maximum ping
+avgping.label Average ping
+querytime.label Query time
+";
+
+}
+
+function doFetch() {
+  global $argv, $qstatloc;
+  
+  if (substr($argv[0],-(strlen("qstatping_"))) != "qstatping_") {
+    $parts = explode("_",$argv[0]);
+    $gametype = $parts[1];
+    $ip = $parts[2];
+    $port = $parts[3];
+  } else {
+    $gametype = $argv[1];
+    $ip = $argv[2];
+    $port = $argv[3];
+  }
+
+  $querytime = "U";
+  $output = array();
+  if ($gametype && $ip && $port) {
+
+    $time_start = microtime(true);
+    exec("$qstatloc -raw \";\" -nh -P -$gametype $ip:$port", &$output);
+    $time_end = microtime(true);
+    $querytime = ($time_end - $time_start) * 1000;
+
+    array_shift($output);
+    
+    $pingavg = 0;
+    $pingmax = -1;
+    $pingmin = 9999;
+    $playerscount = 0;
+    foreach ($output as $line) {
+      $player = explode(";", $line);
+      if (count($player) >= 3 && $player[2] != 999) {
+        if ($player[2] > $pingmax)
+          $pingmax = $player[2];
+        if ($player[2] < $pingmin)
+          $pingmin = $player[2];
+        $pingavg += $player[2];
+        $playerscount++;
+      }
+    }
+
+    if ($playerscount != 0)
+      $pingavg = $pingavg / $playerscount;  
+
+    if ($playerscount != 0) {
+      echo "minping.value $pingmin
+maxping.value $pingmax
+avgping.value $pingavg
+querytime.value $querytime
+";
+      return;
+    }
+
+  }
+  echo "minping.value U
+maxping.value U
+avgping.value U
+querytime.value $querytime
+";
+}
+
+switch ($argv[1]) {
+  case "config":
+    doConfig();
+    break;
+  case "help":
+  case "?":
+    doHelp();
+    break;
+  case "autoconf":
+    echo "no (edit the script to set path to qstat)";
+    break;
+  case "fetch":
+  default:
+    doFetch();
+}
+
+?>
