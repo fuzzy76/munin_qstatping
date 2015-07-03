@@ -9,6 +9,9 @@
 #---------------------------------------------------------------#
 # CHANGELOG
 #
+# v1.11 (3. july 2015)
+#   - Fixed PHP 5.4 compatibility (thanks to hannes)
+#
 # v1.1 (23. april 2010)
 #   - Added highest ping, lowest ping and query response time.
 #   - Now supports being run for testing with ./ in front
@@ -75,7 +78,7 @@ function doFetch() {
   if ($gametype && $ip && $port) {
 
     $time_start = microtime(true);
-    exec("$qstatloc -raw \";\" -nh -P -$gametype $ip:$port", &$output);
+    exec("$qstatloc -raw \";\" -nh -P -$gametype $ip:$port", $output);
     $time_end = microtime(true);
     $querytime = ($time_end - $time_start) * 1000;
 
